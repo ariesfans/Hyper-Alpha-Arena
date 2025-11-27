@@ -245,10 +245,10 @@ export default function AIAnalysisPanel({
         }, null, 2)
       }
 
-      // Create AbortController with 3-minute timeout for AI analysis
-      // Reasoning models (like deepseek-reasoner) can take up to 120s
+      // Create AbortController with 10-minute timeout for AI analysis
+      // Reasoning models (like deepseek-reasoner) can be very slow
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 180000) // 3 minutes
+      const timeoutId = setTimeout(() => controller.abort(), 600000) // 10 minutes
 
       try {
         const response = await fetch('/api/klines/ai-analysis', {
@@ -272,7 +272,7 @@ export default function AIAnalysisPanel({
         // Provide more specific error messages
         let errorMessage = 'Network error occurred'
         if (fetchError.name === 'AbortError') {
-          errorMessage = 'Analysis timeout (3 minutes). Please try again with fewer K-lines or a simpler question.'
+          errorMessage = 'Analysis timeout (10 minutes). Please try again with fewer K-lines or a simpler question.'
         }
 
         setResult({

@@ -331,7 +331,7 @@ def analyze_kline_chart(
         max_retries = 3
         response = None
         success = False
-        request_timeout = 120 if is_reasoning_model else 60
+        request_timeout = 600  # 10 minutes for all models (reasoning models can be very slow)
 
         for endpoint in endpoints:
             for attempt in range(max_retries):
