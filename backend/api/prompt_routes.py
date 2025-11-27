@@ -422,6 +422,7 @@ def preview_prompt(
             None,
             None,
             hyperliquid_state,
+            db=db,
             symbol_metadata=symbol_metadata_map,
             symbol_order=active_symbols,
             sampling_interval=sampling_interval,

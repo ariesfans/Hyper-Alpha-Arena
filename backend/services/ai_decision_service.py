@@ -377,6 +377,7 @@ def _build_prompt_context(
     target_symbol: Optional[str] = None,
     hyperliquid_state: Optional[Dict[str, Any]] = None,
     *,
+    db: Optional[Session] = None,
     symbol_metadata: Optional[Dict[str, Any]] = None,
     symbol_order: Optional[List[str]] = None,
     sampling_interval: Optional[int] = None,
@@ -401,6 +402,7 @@ def _build_prompt_context(
         samples: Legacy price samples (deprecated)
         target_symbol: Legacy single symbol (deprecated)
         hyperliquid_state: Real-time Hyperliquid account state
+        db: Database session (required for leverage settings lookup)
         symbol_metadata: Symbol display names and metadata
         symbol_order: Ordered list of symbols
         sampling_interval: Sampling interval in seconds
@@ -501,9 +503,23 @@ def _build_prompt_context(
     market_prices = _build_market_prices(prices, ordered_symbols, symbol_display_map)
     output_format = OUTPUT_FORMAT_JSON.replace(SYMBOL_PLACEHOLDER, output_symbol_choices or "SYMBOL")
 
-    # Hyperliquid-specific context
-    max_leverage = getattr(account, "max_leverage", 3)
-    default_leverage = getattr(account, "default_leverage", 1)
+    # Hyperliquid-specific context - Get leverage settings from unified function
+    # This ensures leverage values match the wallet configuration for the current environment
+    if db:
+        from services.hyperliquid_environment import get_leverage_settings
+        try:
+            leverage_settings = get_leverage_settings(db, account.id, environment)
+            max_leverage = leverage_settings["max_leverage"]
+            default_leverage = leverage_settings["default_leverage"]
+        except Exception as e:
+            logger.warning(f"Failed to get leverage settings for account {account.id}: {e}, using fallback")
+            max_leverage = getattr(account, "max_leverage", 3)
+            default_leverage = getattr(account, "default_leverage", 1)
+    else:
+        # Fallback if db not provided (should not happen in normal operation)
+        logger.warning(f"No db session provided to _build_prompt_context, using Account table fallback for leverage")
+        max_leverage = getattr(account, "max_leverage", 3)
+        default_leverage = getattr(account, "default_leverage", 1)
 
     # Use hyperliquid_state to determine if this is Hyperliquid trading mode
     if hyperliquid_state and environment in ("testnet", "mainnet"):
@@ -561,7 +577,7 @@ def _build_prompt_context(
                 entry_px = float(pos.get('entry_px', 0))
                 unrealized_pnl = float(pos.get('unrealized_pnl', 0))
                 leverage = float(pos.get('leverage', 1))
-                max_leverage = float(pos.get('max_leverage', 10))
+                position_max_leverage = float(pos.get('max_leverage', 10))  # Renamed to avoid conflict with account max_leverage
                 margin_used = float(pos.get('margin_used', 0))
                 position_value = float(pos.get('position_value', 0))
                 roe = float(pos.get('return_on_equity', 0))
@@ -600,7 +616,7 @@ def _build_prompt_context(
                     f"{timing_line}"
                     f"  Mark price: ${current_price:,.2f} | Position value: ${position_value:,.2f}\n"
                     f"  Unrealized P&L: {pnl_str} ({roe_str} ROE)\n"
-                    f"  Leverage: {leverage:.0f}x {leverage_type_str} (max {max_leverage:.0f}x) | Margin: ${margin_used:,.2f}\n"
+                    f"  Leverage: {leverage:.0f}x {leverage_type_str} (max {position_max_leverage:.0f}x) | Margin: ${margin_used:,.2f}\n"
                     f"  Liquidation: ${liquidation_px:,.2f} ({liq_distance_pct:.1f}% away){liq_warning} | Funding: {funding_str}"
                 )
             positions_detail = "\n".join(pos_lines)
@@ -937,6 +953,7 @@ def call_ai_for_decision(
             None,
             None,
             hyperliquid_state,
+            db=db,
             symbol_metadata=active_symbol_metadata,
             symbol_order=symbol_order,
             sampling_interval=sampling_interval,
@@ -966,6 +983,7 @@ def call_ai_for_decision(
             samples,
             target_symbol,
             hyperliquid_state,
+            db=db,
             symbol_metadata=active_symbol_metadata,
             symbol_order=symbol_order,
             sampling_interval=sampling_interval,
