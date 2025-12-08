@@ -80,9 +80,25 @@ These variables are dynamically generated based on your template. Add them to ge
 
 ### Syntax
 
-- K-line data: `{SYMBOL_klines_PERIOD}` - e.g., `{BTC_klines_15m}`
-- Market data: `{SYMBOL_market_data}` - e.g., `{BTC_market_data}`
-- Indicators: `{SYMBOL_INDICATOR_PERIOD}` - e.g., `{BTC_RSI14_15m}`
+**IMPORTANT**: `SYMBOL` is a placeholder - you must replace it with actual symbol names (BTC, ETH, SOL, etc.). The system will NOT auto-replace `SYMBOL` for you.
+
+| Pattern | You Must Write | Example |
+|---------|----------------|---------|
+| `SYMBOL_klines_PERIOD` | Replace SYMBOL with actual symbol | `{BTC_klines_15m}`, `{ETH_klines_1h}` |
+| `SYMBOL_market_data` | Replace SYMBOL with actual symbol | `{BTC_market_data}`, `{SOL_market_data}` |
+| `SYMBOL_INDICATOR_PERIOD` | Replace SYMBOL with actual symbol | `{BTC_RSI14_15m}`, `{ETH_MACD_1h}` |
+
+**Wrong** (will show nothing):
+```
+{SYMBOL_market_data}
+{SYMBOL_RSI14_15m}
+```
+
+**Correct** (will show actual data):
+```
+{BTC_market_data}
+{BTC_RSI14_15m}
+```
 
 ### Supported Periods
 
