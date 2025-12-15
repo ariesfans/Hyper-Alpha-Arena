@@ -366,7 +366,12 @@ export default function AiSignalChatModal({
       >
         <DialogHeader className="px-6 py-4 border-b">
           <div className="flex items-center justify-between">
-            <DialogTitle>AI Signal Generator</DialogTitle>
+            <div className="flex items-center gap-3">
+              <DialogTitle>AI Signal Generator</DialogTitle>
+              <span className="text-xs text-muted-foreground">
+                (Requires Function Call support to invoke analysis tools. Reasoning models work best.)
+              </span>
+            </div>
             {(loadingConversations || accountsLoading) && <PacmanLoader className="w-8 h-4" />}
           </div>
           <div className="flex items-center gap-4 mt-4">

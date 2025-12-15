@@ -305,9 +305,10 @@ export default function StrategyPanel({
       </CardHeader>
       <CardContent className="flex-1 overflow-hidden">
         <Tabs defaultValue="strategy" className="flex flex-col h-full">
-          <TabsList className="grid grid-cols-2 max-w-md mb-4">
+          <TabsList className="grid grid-cols-3 max-w-2xl mb-4">
             <TabsTrigger value="strategy">AI Strategy</TabsTrigger>
-            <TabsTrigger value="watchlist">Market Watchlist</TabsTrigger>
+            <TabsTrigger value="watchlist">Symbol Watchlist</TabsTrigger>
+            <TabsTrigger value="global">Global Configuration</TabsTrigger>
           </TabsList>
           <TabsContent value="strategy" className="flex-1 overflow-y-auto space-y-6">
             {loading ? (
@@ -436,35 +437,6 @@ export default function StrategyPanel({
               </CardContent>
             </Card>
 
-            {/* Global Configuration */}
-            <Card className="border-muted">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Global Configuration</CardTitle>
-                <CardDescription className="text-xs">Settings that affect all traders</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <section className="space-y-2">
-                  <div className="text-xs text-muted-foreground uppercase tracking-wide">Sampling Interval (seconds)</div>
-                  <Input
-                    type="number"
-                    min={5}
-                    max={60}
-                    step={1}
-                    value={samplingInterval}
-                    onChange={(event) => {
-                      setSamplingInterval(event.target.value)
-                      resetMessages()
-                    }}
-                  />
-                  <p className="text-xs text-muted-foreground">How often to collect price samples (default: 18s)</p>
-                </section>
-
-                <Button onClick={handleSaveGlobal} disabled={saving} className="w-full">
-                  {saving ? 'Saving…' : 'Save Global Settings'}
-                </Button>
-              </CardContent>
-            </Card>
-
               </>
             )}
           </TabsContent>
@@ -516,6 +488,42 @@ export default function StrategyPanel({
                   {watchlistSaving ? 'Saving…' : 'Save Watchlist'}
                 </Button>
               </div>
+            )}
+          </TabsContent>
+          <TabsContent value="global" className="flex-1 overflow-y-auto space-y-4">
+            {loading ? (
+              <div className="text-sm text-muted-foreground">Loading configuration…</div>
+            ) : (
+              <Card className="border-muted">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Global Configuration</CardTitle>
+                  <CardDescription className="text-xs">Settings that affect all traders</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <section className="space-y-2">
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide">Sampling Interval (seconds)</div>
+                    <Input
+                      type="number"
+                      min={5}
+                      max={60}
+                      step={1}
+                      value={samplingInterval}
+                      onChange={(event) => {
+                        setSamplingInterval(event.target.value)
+                        resetMessages()
+                      }}
+                    />
+                    <p className="text-xs text-muted-foreground">How often to collect price samples (default: 18s)</p>
+                  </section>
+
+                  {error && <div className="text-sm text-destructive">{error}</div>}
+                  {success && <div className="text-sm text-green-500">{success}</div>}
+
+                  <Button onClick={handleSaveGlobal} disabled={saving} className="w-full">
+                    {saving ? 'Saving…' : 'Save Global Settings'}
+                  </Button>
+                </CardContent>
+              </Card>
             )}
           </TabsContent>
         </Tabs>

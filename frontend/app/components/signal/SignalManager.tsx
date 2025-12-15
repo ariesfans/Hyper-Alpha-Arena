@@ -808,13 +808,17 @@ export default function SignalManager() {
   return (
     <div className="p-4 space-y-4">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="flex items-center gap-4 mb-4">
+        <div className="flex items-center justify-between gap-4 mb-4">
           <TabsList className="justify-start">
             <TabsTrigger value="signals" className="min-w-[100px]">Signals</TabsTrigger>
             <TabsTrigger value="pools" className="min-w-[120px]">Signal Pools</TabsTrigger>
             <TabsTrigger value="logs" className="min-w-[120px]">Trigger Logs</TabsTrigger>
           </TabsList>
-          <div className="flex gap-2 ml-auto">
+          <p className="text-xs text-amber-600 font-medium flex items-center gap-1">
+            <span>⚠️</span>
+            <span>Signal system analyzes Mainnet data only (testnet data unreliable)</span>
+          </p>
+          <div className="flex gap-2">
             <Button onClick={() => openSignalDialog()} size="sm">
               <Plus className="w-4 h-4 mr-2" />New Signal
             </Button>
