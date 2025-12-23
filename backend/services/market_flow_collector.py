@@ -120,32 +120,42 @@ class MarketFlowCollector:
             logger.warning("MarketFlowCollector already running")
             return
 
+        # Get symbols from watchlist if not provided
+        if symbols is None:
+            from services.hyperliquid_symbol_service import get_selected_symbols
+            symbols = get_selected_symbols()
+
+        if not symbols:
+            logger.warning("No symbols to monitor, collector not started")
+            return
+
+        # Store symbols for retry
+        self._pending_symbols = symbols
+        self.reconnect_attempts = 0
+
+        # Try to start with retry logic
+        self._start_with_retry()
+
+    def _start_with_retry(self):
+        """Internal method to start collector with retry on failure"""
+        symbols = getattr(self, '_pending_symbols', None)
+        if not symbols:
+            logger.warning("No pending symbols for retry")
+            return
+
         try:
-            # Get symbols from watchlist if not provided
-            if symbols is None:
-                from services.hyperliquid_symbol_service import get_selected_symbols
-                symbols = get_selected_symbols()
-
-            if not symbols:
-                logger.warning("No symbols to monitor, collector not started")
-                return
-
-            # Initialize Hyperliquid Info client with WebSocket
-            # Always use mainnet for market data (testnet has limited liquidity)
             base_url = "https://api.hyperliquid.xyz"
+            logger.info(f"[Start] Connecting to Hyperliquid API: {base_url}")
             self.info = Info(base_url=base_url, skip_ws=False)
 
             self.running = True
             self.subscribed_symbols = []
+            self.reconnect_attempts = 0
 
-            # Subscribe to each symbol
             for symbol in symbols:
                 self._subscribe_symbol(symbol)
 
-            # Start flush timer
             self._schedule_flush()
-
-            # Start health check timer
             self._schedule_health_check()
 
             logger.info(f"MarketFlowCollector started with symbols: {symbols}")
@@ -153,6 +163,22 @@ class MarketFlowCollector:
         except Exception as e:
             logger.error(f"Failed to start MarketFlowCollector: {e}", exc_info=True)
             self.running = False
+
+            self.reconnect_attempts += 1
+            if self.reconnect_attempts <= MAX_RECONNECT_ATTEMPTS:
+                delay = RECONNECT_BASE_DELAY_SECONDS * (2 ** (self.reconnect_attempts - 1))
+                logger.warning(
+                    f"[Start] Will retry in {delay}s "
+                    f"(attempt {self.reconnect_attempts}/{MAX_RECONNECT_ATTEMPTS})"
+                )
+                retry_timer = threading.Timer(delay, self._start_with_retry)
+                retry_timer.daemon = True
+                retry_timer.start()
+            else:
+                logger.error(
+                    f"[Start] FAILED after {MAX_RECONNECT_ATTEMPTS} attempts. "
+                    f"Manual restart required!"
+                )
 
     def stop(self):
         """Stop the collector and cleanup"""
