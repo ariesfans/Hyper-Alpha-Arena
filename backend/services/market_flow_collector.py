@@ -31,6 +31,10 @@ DATA_STALE_THRESHOLD_SECONDS = 30  # Consider data stale if no update for 30s
 MAX_RECONNECT_ATTEMPTS = 5
 RECONNECT_BASE_DELAY_SECONDS = 5
 
+# Degraded mode settings (infinite retry with longer intervals)
+DEGRADED_MODE_RETRY_INTERVAL_SECONDS = 120  # 2 minutes between retries
+DEGRADED_MODE_LOG_INTERVAL = 5  # Log warning every 5 failed attempts
+
 
 @dataclass
 class TradeBuffer:
@@ -108,6 +112,11 @@ class MarketFlowCollector:
         self.reconnect_attempts = 0
         self.is_reconnecting = False
         self.reconnect_lock = threading.Lock()
+
+        # Degraded mode state (infinite retry when normal retries exhausted)
+        self.degraded_mode = False
+        self.degraded_retry_count = 0
+        self.degraded_retry_timer: Optional[threading.Timer] = None
 
         # Thread safety
         self.buffer_lock = threading.Lock()
@@ -196,6 +205,15 @@ class MarketFlowCollector:
         if self.health_check_timer:
             self.health_check_timer.cancel()
             self.health_check_timer = None
+
+        # Cancel degraded mode retry timer
+        if self.degraded_retry_timer:
+            self.degraded_retry_timer.cancel()
+            self.degraded_retry_timer = None
+
+        # Reset degraded mode state
+        self.degraded_mode = False
+        self.degraded_retry_count = 0
 
         # Flush remaining data
         self._flush_to_database()
@@ -393,6 +411,11 @@ class MarketFlowCollector:
             logger.debug("Health check skipped - reconnection in progress")
             return
 
+        # In degraded mode, reconnection is handled by degraded_retry_timer
+        if self.degraded_mode:
+            logger.debug("Health check skipped - in degraded mode (timer-controlled retry)")
+            return
+
         now = time.time()
         # Check l2book and asset_ctx freshness (these should update frequently)
         l2book_age = now - self.last_update_time["l2book"] if self.last_update_time["l2book"] > 0 else -1
@@ -417,7 +440,7 @@ class MarketFlowCollector:
             self._reconnect()
 
     def _reconnect(self):
-        """Reconnect WebSocket with exponential backoff"""
+        """Reconnect WebSocket with exponential backoff, then degraded mode"""
         with self.reconnect_lock:
             if self.is_reconnecting:
                 logger.debug("[Reconnect] Already reconnecting, skipping")
@@ -425,38 +448,42 @@ class MarketFlowCollector:
             self.is_reconnecting = True
 
         try:
+            # Check if we should enter or continue degraded mode
             if self.reconnect_attempts >= MAX_RECONNECT_ATTEMPTS:
-                logger.error(
-                    f"[Reconnect] FAILED - Max attempts ({MAX_RECONNECT_ATTEMPTS}) reached. "
-                    f"Stopping collector. Manual restart required!"
+                if not self.degraded_mode:
+                    # First time entering degraded mode
+                    self.degraded_mode = True
+                    self.degraded_retry_count = 0
+                    logger.warning(
+                        f"[Reconnect] Normal retries exhausted ({MAX_RECONNECT_ATTEMPTS}). "
+                        f"Entering DEGRADED MODE - will retry every "
+                        f"{DEGRADED_MODE_RETRY_INTERVAL_SECONDS}s indefinitely."
+                    )
+
+                self.degraded_retry_count += 1
+                # Log every DEGRADED_MODE_LOG_INTERVAL attempts
+                if self.degraded_retry_count % DEGRADED_MODE_LOG_INTERVAL == 1:
+                    logger.warning(
+                        f"[Reconnect] DEGRADED MODE attempt #{self.degraded_retry_count} "
+                        f"(logging every {DEGRADED_MODE_LOG_INTERVAL} attempts)"
+                    )
+            else:
+                # Normal mode with exponential backoff
+                self.reconnect_attempts += 1
+                delay = RECONNECT_BASE_DELAY_SECONDS * (2 ** (self.reconnect_attempts - 1))
+                logger.warning(
+                    f"[Reconnect] Attempt {self.reconnect_attempts}/{MAX_RECONNECT_ATTEMPTS} "
+                    f"starting after {delay}s delay..."
                 )
-                self.stop()
-                return
+                time.sleep(delay)
 
-            self.reconnect_attempts += 1
-            delay = RECONNECT_BASE_DELAY_SECONDS * (2 ** (self.reconnect_attempts - 1))
-            logger.warning(
-                f"[Reconnect] Attempt {self.reconnect_attempts}/{MAX_RECONNECT_ATTEMPTS} "
-                f"starting after {delay}s delay..."
-            )
-            time.sleep(delay)
+            # Save current symbols (use _pending_symbols as fallback)
+            symbols_to_restore = list(self.subscribed_symbols) if self.subscribed_symbols else \
+                                 getattr(self, '_pending_symbols', [])
+            logger.info(f"[Reconnect] Will restore {len(symbols_to_restore)} symbols")
 
-            # Save current symbols
-            symbols_to_restore = list(self.subscribed_symbols)
-            logger.info(f"[Reconnect] Will restore {len(symbols_to_restore)} symbols: {symbols_to_restore}")
-
-            # Disconnect old WebSocket
-            logger.info("[Reconnect] Disconnecting old WebSocket...")
-            if self.info and self.info.ws_manager:
-                try:
-                    self.info.disconnect_websocket()
-                    logger.info("[Reconnect] Old WebSocket disconnected")
-                except Exception as e:
-                    logger.warning(f"[Reconnect] Error disconnecting old websocket: {e}")
-
-            # Clear subscription state
-            self.subscribed_symbols = []
-            self.subscription_ids.clear()
+            # Disconnect old WebSocket and clean up
+            self._cleanup_old_connection()
 
             # Create new Info client
             logger.info("[Reconnect] Creating new Hyperliquid Info client...")
@@ -465,12 +492,13 @@ class MarketFlowCollector:
             logger.info("[Reconnect] New Info client created")
 
             # Resubscribe to all symbols
-            logger.info(f"[Reconnect] Resubscribing to {len(symbols_to_restore)} symbols...")
             for symbol in symbols_to_restore:
                 self._subscribe_symbol(symbol)
 
-            # Reset reconnect counter and update timestamps on success
+            # SUCCESS - reset all reconnection state
             self.reconnect_attempts = 0
+            self.degraded_mode = False
+            self.degraded_retry_count = 0
             now = time.time()
             self.last_update_time["l2book"] = now
             self.last_update_time["asset_ctx"] = now
@@ -482,8 +510,40 @@ class MarketFlowCollector:
 
         except Exception as e:
             logger.error(f"Reconnect failed: {e}", exc_info=True)
+            # Ensure info is None on failure to avoid using corrupted object
+            self.info = None
+            # Schedule next retry in degraded mode
+            if self.degraded_mode:
+                self._schedule_degraded_retry()
         finally:
             self.is_reconnecting = False
+
+    def _cleanup_old_connection(self):
+        """Clean up old WebSocket connection and subscription state"""
+        if self.info and self.info.ws_manager:
+            try:
+                self.info.disconnect_websocket()
+                logger.info("[Reconnect] Old WebSocket disconnected")
+            except Exception as e:
+                logger.warning(f"[Reconnect] Error disconnecting old websocket: {e}")
+        self.info = None
+        self.subscribed_symbols = []
+        self.subscription_ids.clear()
+
+    def _schedule_degraded_retry(self):
+        """Schedule next reconnection attempt in degraded mode"""
+        if not self.running:
+            return
+        self.degraded_retry_timer = threading.Timer(
+            DEGRADED_MODE_RETRY_INTERVAL_SECONDS,
+            self._reconnect
+        )
+        self.degraded_retry_timer.daemon = True
+        self.degraded_retry_timer.start()
+        logger.debug(
+            f"[Reconnect] Degraded mode retry scheduled in "
+            f"{DEGRADED_MODE_RETRY_INTERVAL_SECONDS}s"
+        )
 
     def _schedule_flush(self):
         """Schedule next flush"""

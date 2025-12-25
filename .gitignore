@@ -330,3 +330,6 @@ prompts/
 # Backup files
 *.backup.*
 *.backup
+
+# Internal docs (not for public repo)
+docs/desktop-installer-spec.md
