@@ -251,10 +251,12 @@ def _tool_get_attribution_summary(db: Session, args: Dict) -> str:
     start_date = datetime.now() - timedelta(days=days)
 
     # Build query with environment filter
+    # Only include trades with non-zero PnL (exclude opening trades)
     query = db.query(AIDecisionLog).filter(
         AIDecisionLog.operation.in_(["buy", "sell", "close"]),
         AIDecisionLog.executed == "true",
         AIDecisionLog.realized_pnl.isnot(None),
+        AIDecisionLog.realized_pnl != 0,  # Exclude opening trades (no settled PnL)
         AIDecisionLog.created_at >= start_date,
         AIDecisionLog.hyperliquid_environment == environment
     )

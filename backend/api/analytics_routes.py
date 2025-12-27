@@ -125,13 +125,15 @@ def build_base_query(
 ):
     """Build base query with common filters.
 
-    Only includes decisions with realized_pnl (i.e., closed positions).
-    This ensures statistics match Hyperliquid's closed trade count.
+    Only includes decisions with non-zero realized_pnl (i.e., actually closed positions).
+    This ensures statistics only count trades that have settled PnL,
+    excluding opening trades (pnl=0) and unsync trades (pnl=NULL).
     """
     query = db.query(AIDecisionLog).filter(
         AIDecisionLog.operation.in_(["buy", "sell", "close"]),
         AIDecisionLog.executed == "true",
-        AIDecisionLog.realized_pnl.isnot(None),  # Only count decisions with PnL
+        AIDecisionLog.realized_pnl.isnot(None),  # Exclude unsync trades
+        AIDecisionLog.realized_pnl != 0,  # Exclude opening trades (no settled PnL)
     )
 
     if start_date:
