@@ -483,6 +483,15 @@ export interface ArenaAccountMeta {
   model?: string | null
 }
 
+export interface ArenaRelatedOrder {
+  type: 'sl' | 'tp'
+  price: number
+  quantity: number
+  notional: number
+  commission: number
+  trade_time?: string | null
+}
+
 export interface ArenaTrade {
   trade_id: number
   order_id?: number | null
@@ -503,6 +512,7 @@ export interface ArenaTrade {
   signal_trigger_id?: number | null
   prompt_template_id?: number | null
   prompt_template_name?: string | null
+  related_orders?: ArenaRelatedOrder[]
 }
 
 export interface ArenaTradesResponse {

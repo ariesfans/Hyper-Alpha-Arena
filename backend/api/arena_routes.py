@@ -434,19 +434,39 @@ def get_completed_trades(
             for acc in db.query(Account).filter(Account.id.in_(account_ids)).all()
         }
 
-        # Batch fetch decision logs by hyperliquid_order_id to get signal/prompt info
+        # Batch fetch decision logs to build order relationships
+        # We need to identify: main orders, SL orders, TP orders
         order_ids = {trade.order_id for trade in hyper_trades if trade.order_id}
-        decision_map = {}
-        prompt_template_ids = set()
+
+        # Query decisions that have any of these order IDs as main/sl/tp
+        from sqlalchemy import or_
+        decisions = []
         if order_ids:
             decisions = db.query(AIDecisionLog).filter(
-                AIDecisionLog.hyperliquid_order_id.in_(order_ids)
+                or_(
+                    AIDecisionLog.hyperliquid_order_id.in_(order_ids),
+                    AIDecisionLog.sl_order_id.in_(order_ids),
+                    AIDecisionLog.tp_order_id.in_(order_ids),
+                )
             ).all()
-            for d in decisions:
-                if d.hyperliquid_order_id:
-                    decision_map[d.hyperliquid_order_id] = d
-                    if d.prompt_template_id:
-                        prompt_template_ids.add(d.prompt_template_id)
+
+        # Build mappings:
+        # 1. main_order_id -> decision (for signal/prompt info)
+        # 2. sl/tp_order_id -> main_order_id (for nesting)
+        decision_by_main_order = {}
+        sl_to_main = {}  # sl_order_id -> hyperliquid_order_id
+        tp_to_main = {}  # tp_order_id -> hyperliquid_order_id
+        prompt_template_ids = set()
+
+        for d in decisions:
+            if d.hyperliquid_order_id:
+                decision_by_main_order[str(d.hyperliquid_order_id)] = d
+                if d.prompt_template_id:
+                    prompt_template_ids.add(d.prompt_template_id)
+            if d.sl_order_id and d.hyperliquid_order_id:
+                sl_to_main[str(d.sl_order_id)] = str(d.hyperliquid_order_id)
+            if d.tp_order_id and d.hyperliquid_order_id:
+                tp_to_main[str(d.tp_order_id)] = str(d.hyperliquid_order_id)
 
         # Batch fetch prompt template names
         prompt_template_map = {}
@@ -454,7 +474,11 @@ def get_completed_trades(
             templates = db.query(PromptTemplate).filter(PromptTemplate.id.in_(prompt_template_ids)).all()
             prompt_template_map = {t.id: t.name for t in templates}
 
-        trades: List[dict] = []
+        # First pass: build trade objects and separate main orders from sl/tp orders
+        main_trades: Dict[str, dict] = {}  # order_id -> trade dict
+        sl_trades: Dict[str, dict] = {}    # order_id -> trade dict (to be nested)
+        tp_trades: Dict[str, dict] = {}    # order_id -> trade dict (to be nested)
+        other_trades: List[dict] = []      # trades not linked to any AI decision
         accounts_meta: Dict[int, dict] = {}
 
         for trade in hyper_trades:
@@ -463,41 +487,31 @@ def get_completed_trades(
                 logger.warning(f"Hyperliquid trade references missing account_id={trade.account_id}")
                 continue
 
+            order_id_str = str(trade.order_id) if trade.order_id else None
             quantity = float(trade.quantity)
             price = float(trade.price)
             notional = float(trade.trade_value)
             commission = float(trade.fee or 0)
             side = trade.side.upper()
 
-            # Get decision info for signal/prompt
-            decision = decision_map.get(trade.order_id) if trade.order_id else None
-            signal_trigger_id = decision.signal_trigger_id if decision else None
-            prompt_template_id = decision.prompt_template_id if decision else None
-            prompt_template_name = prompt_template_map.get(prompt_template_id) if prompt_template_id else None
-
-            trades.append(
-                {
-                    "trade_id": trade.id,
-                    "order_id": None,
-                    "order_no": trade.order_id,
-                    "account_id": account.id,
-                    "account_name": account.name,
-                    "model": account.model,
-                    "side": side,
-                    "direction": "LONG" if side == "BUY" else "SHORT",
-                    "symbol": trade.symbol,
-                    "market": "HYPERLIQUID_PERP",
-                    "price": price,
-                    "quantity": quantity,
-                    "notional": notional,
-                    "commission": commission,
-                    "trade_time": trade.trade_time.isoformat() if trade.trade_time else None,
-                    "wallet_address": trade.wallet_address,
-                    "signal_trigger_id": signal_trigger_id,
-                    "prompt_template_id": prompt_template_id,
-                    "prompt_template_name": prompt_template_name,
-                }
-            )
+            trade_dict = {
+                "trade_id": trade.id,
+                "order_id": None,
+                "order_no": trade.order_id,
+                "account_id": account.id,
+                "account_name": account.name,
+                "model": account.model,
+                "side": side,
+                "direction": "LONG" if side == "BUY" else "SHORT",
+                "symbol": trade.symbol,
+                "market": "HYPERLIQUID_PERP",
+                "price": price,
+                "quantity": quantity,
+                "notional": notional,
+                "commission": commission,
+                "trade_time": trade.trade_time.isoformat() if trade.trade_time else None,
+                "wallet_address": trade.wallet_address,
+            }
 
             accounts_meta[account.id] = {
                 "account_id": account.id,
@@ -505,10 +519,64 @@ def get_completed_trades(
                 "model": account.model,
             }
 
+            # Classify this trade: main order, SL, TP, or other
+            if order_id_str and order_id_str in decision_by_main_order:
+                # This is a main order
+                decision = decision_by_main_order[order_id_str]
+                trade_dict["signal_trigger_id"] = decision.signal_trigger_id
+                trade_dict["prompt_template_id"] = decision.prompt_template_id
+                trade_dict["prompt_template_name"] = prompt_template_map.get(decision.prompt_template_id)
+                trade_dict["related_orders"] = []  # Will be populated later
+                main_trades[order_id_str] = trade_dict
+            elif order_id_str and order_id_str in sl_to_main:
+                # This is a stop-loss order
+                trade_dict["order_type"] = "sl"
+                sl_trades[order_id_str] = trade_dict
+            elif order_id_str and order_id_str in tp_to_main:
+                # This is a take-profit order
+                trade_dict["order_type"] = "tp"
+                tp_trades[order_id_str] = trade_dict
+            else:
+                # Not linked to any AI decision (manual trade or unknown)
+                trade_dict["signal_trigger_id"] = None
+                trade_dict["prompt_template_id"] = None
+                trade_dict["prompt_template_name"] = None
+                trade_dict["related_orders"] = []
+                other_trades.append(trade_dict)
+
+        # Second pass: nest SL/TP trades under their main orders
+        for sl_order_id, sl_trade in sl_trades.items():
+            main_order_id = sl_to_main.get(sl_order_id)
+            if main_order_id and main_order_id in main_trades:
+                main_trades[main_order_id]["related_orders"].append({
+                    "type": "sl",
+                    "price": sl_trade["price"],
+                    "quantity": sl_trade["quantity"],
+                    "notional": sl_trade["notional"],
+                    "commission": sl_trade["commission"],
+                    "trade_time": sl_trade["trade_time"],
+                })
+
+        for tp_order_id, tp_trade in tp_trades.items():
+            main_order_id = tp_to_main.get(tp_order_id)
+            if main_order_id and main_order_id in main_trades:
+                main_trades[main_order_id]["related_orders"].append({
+                    "type": "tp",
+                    "price": tp_trade["price"],
+                    "quantity": tp_trade["quantity"],
+                    "notional": tp_trade["notional"],
+                    "commission": tp_trade["commission"],
+                    "trade_time": tp_trade["trade_time"],
+                })
+
+        # Combine main trades and other trades, sort by trade_time desc
+        all_trades = list(main_trades.values()) + other_trades
+        all_trades.sort(key=lambda t: t.get("trade_time") or "", reverse=True)
+
         return {
             "generated_at": datetime.utcnow().isoformat(),
             "accounts": list(accounts_meta.values()),
-            "trades": trades,
+            "trades": all_trades,
         }
 
     # Paper mode (or no filter) falls back to paper trades table

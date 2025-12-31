@@ -924,6 +924,31 @@ export default function AlphaArenaFeed({
                             )}
                           </div>
                         )}
+                        {trade.related_orders && trade.related_orders.length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-border/50 space-y-1">
+                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">
+                              {t('feed.relatedOrders', 'Related Orders')}
+                            </div>
+                            {trade.related_orders.map((ro, idx) => (
+                              <div key={idx} className="flex items-center gap-2 text-xs bg-muted/30 rounded px-2 py-1">
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                  ro.type === 'sl'
+                                    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                    : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                }`}>
+                                  {ro.type === 'sl' ? t('feed.stopLoss', 'SL') : t('feed.takeProfit', 'TP')}
+                                </span>
+                                <span className="text-muted-foreground">@</span>
+                                <span className="font-medium">${ro.price.toFixed(2)}</span>
+                                <span className="text-muted-foreground">|</span>
+                                <span className="text-muted-foreground">{t('feed.qty', 'Qty')}:</span>
+                                <span className="font-medium">{ro.quantity.toFixed(4)}</span>
+                                <span className="text-muted-foreground">|</span>
+                                <span className="text-muted-foreground text-[10px]">{formatDate(ro.trade_time)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                         </div>
                       </HighlightWrapper>
                     )
