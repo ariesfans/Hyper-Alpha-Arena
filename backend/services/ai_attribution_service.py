@@ -379,21 +379,21 @@ def _tool_get_signal_pool_config(db: Session, args: Dict) -> str:
     if not pool:
         return json.dumps({"error": f"Signal pool {pool_id} not found"})
 
-    # Parse signals JSON
-    signals = []
-    if pool.signals:
+    # Parse signal_ids JSON
+    signal_ids = []
+    if pool.signal_ids:
         try:
-            signals = json.loads(pool.signals) if isinstance(pool.signals, str) else pool.signals
+            signal_ids = json.loads(pool.signal_ids) if isinstance(pool.signal_ids, str) else pool.signal_ids
         except:
             pass
 
     return json.dumps({
         "id": pool.id,
-        "name": pool.name,
-        "symbol": pool.symbol,
+        "name": pool.pool_name,
+        "symbol": pool.symbols,
         "logic": pool.logic,
         "enabled": pool.enabled,
-        "signals": signals
+        "signal_ids": signal_ids
     })
 
 
