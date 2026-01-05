@@ -2048,9 +2048,9 @@ def _parse_kline_indicator_variables(template_text: str) -> Dict[str, Dict[str, 
     indicator_pattern = r'\{([A-Z]+)_(RSI\d+|MACD|STOCH|MA\d*|EMA\d*|BOLL|ATR\d+|VWAP|OBV)_(\w+)\}'
 
     # Pattern for market flow variables: {SYMBOL_FLOW_PERIOD}
-    # Supports: CVD, TAKER, OI, OI_DELTA, FUNDING, DEPTH, IMBALANCE
+    # Supports: CVD, TAKER, OI, OI_DELTA, FUNDING, DEPTH, IMBALANCE, PRICE_CHANGE, VOLATILITY
     # Note: OI_DELTA must come before OI in the pattern to match correctly
-    flow_pattern = r'\{([A-Z]+)_(CVD|TAKER|OI_DELTA|OI|FUNDING|DEPTH|IMBALANCE)_(\w+)\}'
+    flow_pattern = r'\{([A-Z]+)_(CVD|TAKER|OI_DELTA|OI|FUNDING|DEPTH|IMBALANCE|PRICE_CHANGE|VOLATILITY)_(\w+)\}'
 
     # Pattern for market data: {SYMBOL_market_data}
     market_data_pattern = r'\{([A-Z]+)_market_data\}'
@@ -2428,6 +2428,32 @@ def _format_flow_indicator(indicator_name: str, indicator_data: Any) -> str:
                 f"Order Imbalance: {current:+.3f}",
                 f"Imbalance last 5: {', '.join(f'{v:+.3f}' for v in last_5)}"
             ]
+            return "\n".join(result)
+
+        elif indicator_name == "PRICE_CHANGE":
+            current = indicator_data.get("current", 0)
+            start_price = indicator_data.get("start_price")
+            end_price = indicator_data.get("end_price")
+            last_5 = indicator_data.get("last_5", [])
+
+            result = [f"Price Change: {current:+.3f}%"]
+            if start_price and end_price:
+                result.append(f"Price: {start_price:.2f} -> {end_price:.2f}")
+            if last_5:
+                result.append(f"Change last 5: {', '.join(f'{v:+.3f}%' for v in last_5)}")
+            return "\n".join(result)
+
+        elif indicator_name == "VOLATILITY":
+            current = indicator_data.get("current", 0)
+            high = indicator_data.get("high")
+            low = indicator_data.get("low")
+            last_5 = indicator_data.get("last_5", [])
+
+            result = [f"Volatility: {current:.3f}%"]
+            if high and low:
+                result.append(f"Range: {low:.2f} - {high:.2f}")
+            if last_5:
+                result.append(f"Volatility last 5: {', '.join(f'{v:.3f}%' for v in last_5)}")
             return "\n".join(result)
 
         else:
