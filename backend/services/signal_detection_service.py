@@ -28,9 +28,18 @@ def _get_market_regime_for_trigger(symbol: str, timeframe: str = "5m") -> Option
     try:
         from database.connection import SessionLocal
         from services.market_regime_service import get_market_regime
+        from datetime import datetime
+
         db = SessionLocal()
         try:
-            result = get_market_regime(db, symbol, timeframe)
+            # FIX: Pass current timestamp and use_realtime=True to fetch current K-line from API
+            # This ensures regime calculation uses the latest market data including unfinished candles
+            timestamp_ms = int(datetime.utcnow().timestamp() * 1000)
+            result = get_market_regime(
+                db, symbol, timeframe,
+                timestamp_ms=timestamp_ms,
+                use_realtime=True
+            )
             return json.dumps({
                 "symbol": symbol,
                 "timeframe": timeframe,

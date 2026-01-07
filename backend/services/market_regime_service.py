@@ -31,6 +31,79 @@ from services.market_flow_indicators import get_flow_indicators_for_prompt, TIME
 logger = logging.getLogger(__name__)
 
 
+def _fetch_kline_with_realtime(
+    db: Session, symbol: str, period: str, limit: int, current_time_ms: Optional[int]
+) -> List[Dict[str, Any]]:
+    """
+    Fetch K-line data with realtime API call for current candle.
+    Merges API data with DB history, API data takes priority for overlapping timestamps.
+
+    Args:
+        db: Database session
+        symbol: Trading symbol
+        period: Timeframe (1m, 5m, 15m, etc.)
+        limit: Number of candles to fetch
+        current_time_ms: Current timestamp in milliseconds
+    """
+    from services.hyperliquid_market_data import get_kline_data_from_hyperliquid
+
+    # Fetch recent candles from API (including current unfinished candle)
+    api_klines = []
+    try:
+        # Only fetch 5 candles from API to minimize latency
+        raw_data = get_kline_data_from_hyperliquid(symbol, period, count=5, persist=False)
+        for k in raw_data:
+            # API returns timestamp in ms, convert to seconds for consistency
+            ts = k.get("timestamp", 0)
+            if ts > 1e12:  # If in milliseconds
+                ts = ts // 1000
+            api_klines.append({
+                "timestamp": ts,
+                "open": float(k.get("open", 0)),
+                "high": float(k.get("high", 0)),
+                "low": float(k.get("low", 0)),
+                "close": float(k.get("close", 0)),
+                "volume": float(k.get("volume", 0))
+            })
+        logger.debug(f"Fetched {len(api_klines)} candles from API for {symbol}/{period}")
+    except Exception as e:
+        logger.warning(f"Failed to fetch realtime K-line from API: {e}, falling back to DB only")
+        # Fallback to DB-only
+        api_klines = []
+
+    # Fetch history from DB (limit-5 to leave room for API data)
+    db_limit = max(limit - 5, limit)  # Fetch enough to ensure we have limit candles after merge
+    query = db.query(CryptoKline).filter(
+        CryptoKline.symbol == symbol,
+        CryptoKline.period == period
+    )
+    if current_time_ms:
+        current_time_s = current_time_ms // 1000
+        query = query.filter(CryptoKline.timestamp <= current_time_s)
+
+    db_klines = query.order_by(CryptoKline.timestamp.desc()).limit(db_limit).all()
+
+    # Convert DB klines to dict format
+    db_data = {}
+    for k in db_klines:
+        db_data[k.timestamp] = {
+            "timestamp": k.timestamp,
+            "open": float(k.open_price) if k.open_price else 0,
+            "high": float(k.high_price) if k.high_price else 0,
+            "low": float(k.low_price) if k.low_price else 0,
+            "close": float(k.close_price) if k.close_price else 0,
+            "volume": float(k.volume) if k.volume else 0
+        }
+
+    # Merge: API data takes priority (more recent)
+    for k in api_klines:
+        db_data[k["timestamp"]] = k
+
+    # Sort by timestamp and take last 'limit' candles
+    sorted_klines = sorted(db_data.values(), key=lambda x: x["timestamp"])
+    return sorted_klines[-limit:] if len(sorted_klines) > limit else sorted_klines
+
+
 # Regime type constants
 REGIME_STOP_HUNT = "stop_hunt"
 REGIME_ABSORPTION = "absorption"
@@ -184,7 +257,7 @@ def classify_regime(
 
 def fetch_kline_data(
     db: Session, symbol: str, period: str = "5m", limit: int = 50,
-    current_time_ms: Optional[int] = None
+    current_time_ms: Optional[int] = None, use_realtime: bool = False
 ) -> List[Dict[str, Any]]:
     """
     Fetch K-line data for technical indicator calculation.
@@ -196,7 +269,13 @@ def fetch_kline_data(
         period: Timeframe (1m, 5m, 15m, etc.)
         limit: Number of candles to fetch
         current_time_ms: Optional timestamp for historical queries (backtesting)
+        use_realtime: If True, fetch current candle from API and merge with DB history
     """
+    # If use_realtime, fetch current candle from API and merge with DB history
+    if use_realtime:
+        return _fetch_kline_with_realtime(db, symbol, period, limit, current_time_ms)
+
+    # Original DB-only logic for backtesting
     query = db.query(CryptoKline).filter(
         CryptoKline.symbol == symbol,
         CryptoKline.period == period
@@ -268,7 +347,8 @@ def get_market_regime(
     symbol: str,
     timeframe: str = "5m",
     config_id: Optional[int] = None,
-    timestamp_ms: Optional[int] = None
+    timestamp_ms: Optional[int] = None,
+    use_realtime: bool = False
 ) -> Dict[str, Any]:
     """
     Main entry point: Get market regime classification for a symbol.
@@ -282,6 +362,7 @@ def get_market_regime(
         timeframe: Time frame (1m, 5m, 15m, 1h, etc.)
         config_id: Optional config ID, uses default if not specified
         timestamp_ms: Optional timestamp for historical queries (backtesting)
+        use_realtime: If True, fetch current K-line from API for real-time triggers
 
     Returns:
         Dict with regime, direction, confidence, reason, indicators, and debug info
@@ -358,7 +439,10 @@ def get_market_regime(
     oi_delta = oi_delta_data.get("current", 0) if oi_delta_data else 0.0
 
     # Fetch K-line data and calculate price metrics (ATR, RSI)
-    kline_data = fetch_kline_data(db, symbol, timeframe, limit=50, current_time_ms=timestamp_ms)
+    kline_data = fetch_kline_data(
+        db, symbol, timeframe, limit=50,
+        current_time_ms=timestamp_ms, use_realtime=use_realtime
+    )
     price_metrics = calculate_price_metrics(kline_data)
     price_atr = price_metrics["price_atr"]
     price_range_atr = price_metrics["price_range_atr"]
