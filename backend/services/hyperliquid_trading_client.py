@@ -716,8 +716,9 @@ class HyperliquidTradingClient:
 
         if status_timestamp:
             try:
-                # statusTimestamp is in milliseconds
-                return datetime.fromtimestamp(status_timestamp / 1000, tz=timezone.utc)
+                # statusTimestamp is in milliseconds, return UTC without timezone info
+                # to match database datetime format (all stored as UTC without tzinfo)
+                return datetime.utcfromtimestamp(status_timestamp / 1000)
             except Exception as e:
                 logger.warning(f"Failed to parse statusTimestamp {status_timestamp}: {e}")
                 return None

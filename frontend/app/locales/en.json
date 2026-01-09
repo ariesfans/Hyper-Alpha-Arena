@@ -29,7 +29,8 @@
     "lastUpdate": "Last update",
     "details": "Details",
     "more": "more",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "loadMore": "Load More"
   },
   "regime": {
     "noConfig": "No configuration found",
@@ -872,7 +873,8 @@
     "noTrades": "No trades found",
     "tabs": {
       "dimensions": "Dimension Analysis",
-      "trades": "Trade Details"
+      "trades": "Trade Details",
+      "backtest": "Prompt Backtest"
     },
     "tags": {
       "all": "All",
@@ -935,6 +937,54 @@
       "suggestedChange": "Suggested",
       "reason": "Reason"
     }
+  },
+  "promptBacktest": {
+    "selectAccount": "Please select a specific AI Trader to use Prompt Backtest",
+    "selectRecords": "Select Records",
+    "decisionRecords": "Decision Records",
+    "loadSelected": "Load Selected",
+    "addToWorkspace": "Add",
+    "time": "Time",
+    "operation": "Operation",
+    "symbol": "Symbol",
+    "reason": "Reason",
+    "noRecords": "No records found",
+    "records": "records",
+    "selected": "selected",
+    "workspace": "Workspace",
+    "emptyWorkspace": "Select records from the left and click Add",
+    "runBacktest": "Run Backtest",
+    "findText": "Find...",
+    "replaceWith": "Replace...",
+    "replace": "Replace",
+    "replacedCount": "Replaced in {{count}} records",
+    "promptPreview": "Prompt Preview",
+    "running": "Running Backtest...",
+    "completed": "completed",
+    "results": "Backtest Results",
+    "total": "Total",
+    "changed": "Changed",
+    "avoidedLoss": "Avoided Loss",
+    "missedProfit": "Missed Profit",
+    "originalDecision": "Original",
+    "originalPnl": "P&L",
+    "newDecision": "New",
+    "impact": "Impact",
+    "taskHistory": "Task History",
+    "editPrompt": "Edit Prompt",
+    "decisionDetail": "Decision Detail",
+    "failedItems": "{{count}} items failed",
+    "retry": "Retry",
+    "pnl": "P&L",
+    "loadMore": "Load More",
+    "history": "History",
+    "backtestHistory": "Backtest History",
+    "tasks": "Tasks",
+    "detail": "Detail",
+    "noTasks": "No tasks yet",
+    "selectTaskHint": "Select a task to view results",
+    "selectItemHint": "Select a result to view detail",
+    "description": "Replay historical decisions with modified prompts. Placeholders are fixed."
   },
   "traderData": {
     "export": "Export Data",

@@ -15,6 +15,7 @@ import {
 import { AlertTriangle, Sparkles, X, Info, RefreshCw, Play } from 'lucide-react'
 import AiAttributionChatModal from './AiAttributionChatModal'
 import TradeReplayModal from './TradeReplayModal'
+import PromptBacktest from './PromptBacktest'
 import { TradingAccount, checkPnlSyncStatus, updateArenaPnl } from '@/lib/api'
 
 // Types
@@ -372,10 +373,18 @@ export default function AttributionAnalysis() {
 
           {/* Tabs for Dimension Analysis and Trade Details */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 max-w-md">
-              <TabsTrigger value="dimensions">{t('attribution.tabs.dimensions', 'Dimension Analysis')}</TabsTrigger>
-              <TabsTrigger value="trades">{t('attribution.tabs.trades', 'Trade Details')}</TabsTrigger>
-            </TabsList>
+            <div className="flex items-center gap-4 flex-wrap">
+              <TabsList className="grid w-full grid-cols-3 max-w-lg">
+                <TabsTrigger value="dimensions">{t('attribution.tabs.dimensions', 'Dimension Analysis')}</TabsTrigger>
+                <TabsTrigger value="trades">{t('attribution.tabs.trades', 'Trade Details')}</TabsTrigger>
+                <TabsTrigger value="backtest">{t('attribution.tabs.backtest', 'Prompt Backtest')}</TabsTrigger>
+              </TabsList>
+              {activeTab === 'backtest' && (
+                <p className="text-xs text-muted-foreground">
+                  {t('promptBacktest.description', 'Replay historical decisions with modified prompts. Placeholders are fixed.')}
+                </p>
+              )}
+            </div>
 
             <TabsContent value="dimensions" className="mt-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -652,6 +661,12 @@ export default function AttributionAnalysis() {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="backtest" className="mt-4">
+              <PromptBacktest
+                accountId={accountId}
+              />
             </TabsContent>
           </Tabs>
         </>

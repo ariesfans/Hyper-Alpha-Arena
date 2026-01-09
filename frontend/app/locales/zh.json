@@ -29,7 +29,8 @@
     "lastUpdate": "最后更新",
     "details": "详情",
     "more": "更多",
-    "saving": "保存中..."
+    "saving": "保存中...",
+    "loadMore": "加载更多"
   },
   "regime": {
     "noConfig": "未找到配置",
@@ -882,7 +883,8 @@
     "noTrades": "暂无交易记录",
     "tabs": {
       "dimensions": "维度分析",
-      "trades": "交易明细"
+      "trades": "交易明细",
+      "backtest": "提示词回测"
     },
     "tags": {
       "all": "全部",
@@ -945,6 +947,54 @@
       "suggestedChange": "建议",
       "reason": "原因"
     }
+  },
+  "promptBacktest": {
+    "selectAccount": "请选择一个具体的AI交易员以使用提示词回测",
+    "selectRecords": "选择记录",
+    "decisionRecords": "决策记录",
+    "loadSelected": "加载选中",
+    "addToWorkspace": "添加",
+    "time": "时间",
+    "operation": "操作",
+    "symbol": "交易对",
+    "reason": "原因",
+    "noRecords": "暂无记录",
+    "records": "条记录",
+    "selected": "已选",
+    "workspace": "工作区",
+    "emptyWorkspace": "从左侧选择记录并点击添加",
+    "runBacktest": "运行回测",
+    "findText": "查找...",
+    "replaceWith": "替换...",
+    "replace": "替换",
+    "replacedCount": "已在 {{count}} 条记录中替换",
+    "promptPreview": "提示词预览",
+    "running": "正在运行回测...",
+    "completed": "已完成",
+    "results": "回测结果",
+    "total": "总计",
+    "changed": "已变更",
+    "avoidedLoss": "避免亏损",
+    "missedProfit": "错过盈利",
+    "originalDecision": "原决策",
+    "originalPnl": "盈亏",
+    "newDecision": "新决策",
+    "impact": "影响",
+    "taskHistory": "任务历史",
+    "editPrompt": "编辑提示词",
+    "decisionDetail": "决策详情",
+    "failedItems": "{{count}} 项失败",
+    "retry": "重试",
+    "pnl": "盈亏",
+    "loadMore": "加载更多",
+    "history": "历史",
+    "backtestHistory": "回测历史",
+    "tasks": "任务",
+    "detail": "详情",
+    "noTasks": "暂无任务",
+    "selectTaskHint": "选择任务查看结果",
+    "selectItemHint": "选择结果查看详情",
+    "description": "基于历史决策回放修改后的提示词效果，占位符不可更改。"
   },
   "traderData": {
     "export": "导出数据",

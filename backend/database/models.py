@@ -909,6 +909,76 @@ class MarketRegimeConfig(Base):
 
 
 # ============================================================================
+# Prompt Backtest Tables
+# ============================================================================
+
+class PromptBacktestTask(Base):
+    """Prompt backtest task - batch test prompt modifications against historical decisions"""
+    __tablename__ = "prompt_backtest_tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    account_id = Column(Integer, ForeignKey("accounts.id"), nullable=False, index=True)
+    wallet_address = Column(String(100), nullable=True, index=True)
+    environment = Column(String(20), nullable=True)  # testnet/mainnet
+    name = Column(String(200), nullable=True)  # User-defined task name
+    status = Column(String(20), nullable=False, default="pending")  # pending/running/completed/failed
+    total_count = Column(Integer, nullable=False, default=0)
+    completed_count = Column(Integer, nullable=False, default=0)
+    failed_count = Column(Integer, nullable=False, default=0)
+    replace_rules = Column(Text, nullable=True)  # JSON: replacement rules used
+    started_at = Column(TIMESTAMP, nullable=True)
+    finished_at = Column(TIMESTAMP, nullable=True)
+    error_message = Column(Text, nullable=True)
+    created_at = Column(TIMESTAMP, server_default=func.current_timestamp(), index=True)
+    updated_at = Column(TIMESTAMP, server_default=func.current_timestamp(),
+                        onupdate=func.current_timestamp())
+
+    # Relationships
+    account = relationship("Account")
+    items = relationship("PromptBacktestItem", back_populates="task", cascade="all, delete-orphan")
+
+
+class PromptBacktestItem(Base):
+    """Individual item in a prompt backtest task"""
+    __tablename__ = "prompt_backtest_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    task_id = Column(Integer, ForeignKey("prompt_backtest_tasks.id"), nullable=False, index=True)
+    original_decision_log_id = Column(Integer, ForeignKey("ai_decision_logs.id"), nullable=False)
+    status = Column(String(20), nullable=False, default="pending")  # pending/running/completed/failed
+    error_message = Column(Text, nullable=True)
+
+    # Original data snapshot
+    original_operation = Column(String(20), nullable=True)
+    original_symbol = Column(String(20), nullable=True)
+    original_target_portion = Column(DECIMAL(10, 6), nullable=True)
+    original_reasoning = Column(Text, nullable=True)
+    original_decision_json = Column(Text, nullable=True)
+    original_realized_pnl = Column(DECIMAL(18, 6), nullable=True)
+    original_decision_time = Column(TIMESTAMP, nullable=True)
+    original_prompt_template_name = Column(String(200), nullable=True)
+
+    # Modified prompt (cache)
+    modified_prompt = Column(Text, nullable=True)
+
+    # New decision results
+    new_operation = Column(String(20), nullable=True)
+    new_symbol = Column(String(20), nullable=True)
+    new_target_portion = Column(DECIMAL(10, 6), nullable=True)
+    new_reasoning = Column(Text, nullable=True)
+    new_decision_json = Column(Text, nullable=True)
+
+    # Derived fields
+    decision_changed = Column(Boolean, nullable=True)
+    change_type = Column(String(50), nullable=True)  # e.g., buy_to_hold
+    created_at = Column(TIMESTAMP, server_default=func.current_timestamp())
+
+    # Relationships
+    task = relationship("PromptBacktestTask", back_populates="items")
+    original_decision_log = relationship("AIDecisionLog")
+
+
+# ============================================================================
 # CRYPTO market trading configuration constants
 # ============================================================================
 CRYPTO_MIN_COMMISSION = 0.1  # $0.1 minimum commission

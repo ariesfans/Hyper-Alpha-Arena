@@ -1003,7 +1003,7 @@ Regime Types:
             for tf in supported_timeframes:
                 tf_regime_lines = []
                 for symbol in ordered_symbols:
-                    regime_result = get_market_regime(db, symbol, tf)
+                    regime_result = get_market_regime(db, symbol, tf, use_realtime=True)
                     regime_text = format_regime_text(symbol, tf, regime_result)
                     market_regime_context[f"{symbol}_market_regime_{tf}"] = regime_text
                     tf_regime_lines.append(f"- {regime_text}")

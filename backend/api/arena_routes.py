@@ -662,6 +662,7 @@ def get_model_chat(
     before_time: Optional[str] = Query(None, description="ISO format timestamp for cursor-based pagination"),
     include_snapshots: bool = Query(False, description="Include prompt/reasoning/decision snapshots (heavy data)"),
     symbol: Optional[str] = Query(None),
+    ids: Optional[str] = Query(None, description="Comma-separated list of decision IDs to fetch"),
     db: Session = Depends(get_db),
 ):
     """Return recent AI decision logs as chat-style summaries, filtered by trading mode."""
@@ -670,6 +671,15 @@ def get_model_chat(
         .join(Account, AIDecisionLog.account_id == Account.id)
         .order_by(desc(AIDecisionLog.decision_time))
     )
+
+    # If specific IDs are requested, filter by them
+    if ids:
+        try:
+            id_list = [int(x.strip()) for x in ids.split(",") if x.strip()]
+            if id_list:
+                query = query.filter(AIDecisionLog.id.in_(id_list))
+        except ValueError:
+            pass
 
     if account_id:
         query = query.filter(AIDecisionLog.account_id == account_id)
@@ -773,6 +783,8 @@ def get_model_chat(
             "signal_trigger_id": log.signal_trigger_id,
             "prompt_template_id": log.prompt_template_id,
             "prompt_template_name": prompt_template_map.get(log.prompt_template_id) if log.prompt_template_id else None,
+            "realized_pnl": float(log.realized_pnl) if log.realized_pnl else None,
+            "has_snapshot": bool(log.prompt_snapshot),
         }
 
         # Only include heavy snapshot fields when explicitly requested

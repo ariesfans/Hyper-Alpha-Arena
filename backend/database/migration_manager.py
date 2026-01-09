@@ -42,6 +42,7 @@ MIGRATIONS = [
     "add_scheduled_trigger_enabled.py",
     "add_show_on_dashboard.py",
     "add_signal_pool_ids_field.py",
+    "add_prompt_backtest_tables.py",
 ]
 
 
