@@ -232,7 +232,23 @@
     "leverage": "Leverage",
     "marginUsedCol": "Margin Used",
     "currentValue": "Current Value",
-    "portfolioPercent": "Portfolio %"
+    "portfolioPercent": "Portfolio %",
+    "accountSummary": "Account Summary",
+    "confirmUpdatePnl": "Confirm Update PnL",
+    "confirmUpdatePnlDesc": "This will fetch the latest fee and PnL data from Hyperliquid API. Continue?",
+    "current": "Current",
+    "noContent": "No content",
+    "pnlUpdated": "PnL data updated",
+    "pnlUpdateFailed": "Failed to update PnL",
+    "promptTemplate": "Prompt Template",
+    "qty": "Qty",
+    "relatedOrders": "Related Orders",
+    "scheduledTrigger": "Scheduled",
+    "signalPoolTrigger": "Signal Pool",
+    "noAccounts": "No accounts found",
+    "trades": "Trades",
+    "syncPnl": "Sync PnL",
+    "viewFull": "View Full"
   },
   "portfolio": {
     "title": "Portfolio",
@@ -1018,5 +1034,13 @@
     "importFailed": "Import failed",
     "importComplete": "Import Complete",
     "importedCount": "Successfully imported {{count}} records"
+  },
+  "modelChat": {
+    "title": "AI Decisions",
+    "subtitle": "View AI trading decision reasoning",
+    "noAccount": "No account selected",
+    "noDecisions": "No decisions yet",
+    "noReasoning": "No reasoning data available",
+    "hyperliquidOnly": "Only available in Hyperliquid mode"
   }
 }

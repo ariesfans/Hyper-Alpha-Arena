@@ -267,10 +267,35 @@ export default function KlinesView({ onAccountUpdated }: KlinesViewProps) {
   }
 
   return (
-    <div className="flex h-full w-full gap-4 overflow-hidden">
+    <div className="flex flex-col md:flex-row h-full w-full gap-4 overflow-hidden pb-16 md:pb-0">
       {/* 左侧 70%：选择区 + 市场数据 + 指标 + K线图 */}
-      <div className="flex flex-col flex-[7] min-w-0 space-y-4 overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-6 gap-3 flex-shrink-0">
+      <div className="flex flex-col flex-1 md:flex-[7] min-w-0 space-y-4 overflow-hidden">
+        {/* Mobile: Simplified selector bar */}
+        <div className="md:hidden flex items-center gap-2 px-2 py-2 bg-background border-b">
+          <Select value={selectedSymbol} onValueChange={setSelectedSymbol}>
+            <SelectTrigger className="flex-1 h-9">
+              <SelectValue placeholder={t('kline.selectSymbol', 'Select Symbol')} />
+            </SelectTrigger>
+            <SelectContent>
+              {watchlistSymbols.map(symbol => (
+                <SelectItem key={symbol} value={symbol}>{symbol}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+            <SelectTrigger className="w-20 h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {['1m','5m','15m','1h','4h','1d'].map(p => (
+                <SelectItem key={p} value={p}>{p}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Desktop: Full control panel */}
+        <div className="hidden md:grid grid-cols-1 lg:grid-cols-6 gap-3 flex-shrink-0">
           {/* Symbol and Period Selection */}
           <Card className="lg:col-span-2">
             <CardContent className="pt-4 space-y-3">
@@ -519,21 +544,22 @@ export default function KlinesView({ onAccountUpdated }: KlinesViewProps) {
         </div>
 
         {/* K-Line Chart Area */}
-        <Card className="flex-1 min-h-[420px] min-w-0 overflow-hidden">
-          <CardHeader className="py-3">
+        <Card className="flex-1 min-h-[300px] md:min-h-[420px] min-w-0 overflow-hidden">
+          <CardHeader className="py-2 md:py-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <CardTitle className="text-sm">
-                  {selectedSymbol} {t('kline.chartTitle', 'K-Line Chart')} ({selectedPeriod})
+              <div className="flex items-center gap-2 md:gap-3">
+                <CardTitle className="text-xs md:text-sm">
+                  {selectedSymbol} ({selectedPeriod})
                 </CardTitle>
                 {chartLoading && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground">
                     <PacmanLoader className="w-12 h-6" />
                     {t('kline.loadingKlineData', 'Loading K-line data...')}
                   </div>
                 )}
               </div>
-              <div className="flex gap-1 bg-background/80 backdrop-blur-sm rounded-md p-1 border">
+              {/* Chart type selector - hidden on mobile */}
+              <div className="hidden md:flex gap-1 bg-background/80 backdrop-blur-sm rounded-md p-1 border">
                 <button
                   onClick={() => setChartType('candlestick')}
                   className={`px-2 py-1 text-xs rounded transition-colors ${
@@ -585,8 +611,8 @@ export default function KlinesView({ onAccountUpdated }: KlinesViewProps) {
         </Card>
       </div>
 
-      {/* 右侧 30%：AI Analysis 独立列 */}
-      <div className="flex flex-col flex-[3] min-w-[300px] space-y-4">
+      {/* 右侧 30%：AI Analysis 独立列 - Hidden on mobile */}
+      <div className="hidden md:flex flex-col flex-[3] min-w-[300px] space-y-4">
         <Card className="flex-1 overflow-hidden">
           <CardHeader className="py-3">
             <CardTitle className="text-sm">{t('kline.aiAnalysis', 'AI Analysis')}</CardTitle>

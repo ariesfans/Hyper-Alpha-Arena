@@ -1,4 +1,4 @@
-import { BarChart3, FileText, NotebookPen, Coins } from 'lucide-react'
+import { BarChart3, FileText, NotebookPen, Coins, MessageSquare } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 // AI Trader icon component (custom SVG)
@@ -107,9 +107,10 @@ export default function Sidebar({ currentPage = 'comprehensive', onPageChange, o
 
   return (
     <>
-      <aside className="w-16 md:w-52 border-r h-full p-4 flex flex-col fixed md:relative left-0 top-0 z-50 bg-background space-y-6">
+      {/* Desktop Sidebar - Hidden on mobile */}
+      <aside className="hidden md:flex w-52 border-r h-full p-4 flex-col fixed md:relative left-0 top-0 z-50 bg-background space-y-6">
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex md:flex-col md:space-y-2">
+        <nav className="flex flex-col space-y-2">
           {desktopNav.map((item) => {
             const Icon = item.icon
             const isActive = currentPage === item.page
@@ -161,71 +162,47 @@ export default function Sidebar({ currentPage = 'comprehensive', onPageChange, o
           </button>
         </nav>
 
-        {/* Mobile Navigation */}
-        <nav className="md:hidden flex flex-row items-center justify-around fixed bottom-0 left-0 right-0 bg-background border-t h-16 px-4 z-50">
-          <button
-            className={`flex flex-col items-center justify-center w-12 h-12 rounded-lg transition-colors ${
-              currentPage === 'comprehensive'
-                ? 'bg-secondary/80 text-secondary-foreground'
-                : 'hover:bg-muted text-muted-foreground'
-            }`}
-            onClick={() => onPageChange?.('comprehensive')}
-            title="Dashboard"
-          >
-            <BarChart3 className="w-5 h-5" />
-            <span className="text-xs mt-1">Dashboard</span>
-          </button>
-          <button
-            className={`flex flex-col items-center justify-center w-12 h-12 rounded-lg transition-colors ${
-              currentPage === 'trader-management'
-                ? 'bg-secondary/80 text-secondary-foreground'
-                : 'hover:bg-muted text-muted-foreground'
-            }`}
-            onClick={() => onPageChange?.('trader-management')}
-            title="AI Trader"
-          >
-            <AITraderIcon className="w-5 h-5" />
-            <span className="text-xs mt-1">AI Trader</span>
-          </button>
-          <button
-            className={`flex flex-col items-center justify-center w-12 h-12 rounded-lg transition-colors ${
-              currentPage === 'hyperliquid'
-                ? 'bg-secondary/80 text-secondary-foreground'
-                : 'hover:bg-muted text-muted-foreground'
-            }`}
-            onClick={() => onPageChange?.('hyperliquid')}
-            title="Manual Trading"
-          >
-            <Coins className="w-5 h-5" />
-            <span className="text-xs mt-1">Manual</span>
-          </button>
-          <button
-            className={`flex flex-col items-center justify-center w-12 h-12 rounded-lg transition-colors ${
-              currentPage === 'klines'
-                ? 'bg-secondary/80 text-secondary-foreground'
-                : 'hover:bg-muted text-muted-foreground'
-            }`}
-            onClick={() => onPageChange?.('klines')}
-            title="K-Lines"
-          >
-            <KLinesIcon className="w-5 h-5" />
-            <span className="text-xs mt-1">K-Lines</span>
-          </button>
-          <button
-            className={`flex flex-col items-center justify-center w-12 h-12 rounded-lg transition-colors ${
-              currentPage === 'premium-features'
-                ? 'bg-secondary/80 text-secondary-foreground'
-                : 'hover:bg-muted text-muted-foreground'
-            }`}
-            onClick={() => onPageChange?.('premium-features')}
-            title="Premium"
-          >
-            <PremiumIcon className="w-5 h-5" />
-            <span className="text-xs mt-1">Premium</span>
-          </button>
-        </nav>
       </aside>
 
+      {/* Mobile Navigation - Only 3 tabs: Dashboard, K-Lines, Chat */}
+      <nav className="md:hidden flex flex-row items-center justify-around fixed bottom-0 left-0 right-0 bg-background border-t h-16 px-2 z-50">
+        <button
+          className={`flex flex-col items-center justify-center flex-1 h-12 rounded-lg transition-colors ${
+            currentPage === 'comprehensive'
+              ? 'bg-secondary/80 text-secondary-foreground'
+              : 'hover:bg-muted text-muted-foreground'
+          }`}
+          onClick={() => onPageChange?.('comprehensive')}
+          title="Dashboard"
+        >
+          <BarChart3 className="w-5 h-5" />
+          <span className="text-xs mt-1">Dashboard</span>
+        </button>
+        <button
+          className={`flex flex-col items-center justify-center flex-1 h-12 rounded-lg transition-colors ${
+            currentPage === 'klines'
+              ? 'bg-secondary/80 text-secondary-foreground'
+              : 'hover:bg-muted text-muted-foreground'
+          }`}
+          onClick={() => onPageChange?.('klines')}
+          title="K-Lines"
+        >
+          <KLinesIcon className="w-5 h-5" />
+          <span className="text-xs mt-1">K-Lines</span>
+        </button>
+        <button
+          className={`flex flex-col items-center justify-center flex-1 h-12 rounded-lg transition-colors ${
+            currentPage === 'model-chat'
+              ? 'bg-secondary/80 text-secondary-foreground'
+              : 'hover:bg-muted text-muted-foreground'
+          }`}
+          onClick={() => onPageChange?.('model-chat')}
+          title="Chat"
+        >
+          <MessageSquare className="w-5 h-5" />
+          <span className="text-xs mt-1">Chat</span>
+        </button>
+      </nav>
     </>
   )
 }

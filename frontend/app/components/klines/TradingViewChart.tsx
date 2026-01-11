@@ -3,6 +3,29 @@ import { createChart, CandlestickSeries, HistogramSeries, LineSeries, AreaSeries
 import PacmanLoader from '../ui/pacman-loader'
 import { formatChartTime } from '../../lib/dateTime'
 
+// Mobile detection helper
+const isMobileDevice = () => typeof window !== 'undefined' && window.innerWidth < 768
+
+// Mobile price formatter - shorten large numbers
+const formatMobilePrice = (price: number): string => {
+  if (price >= 1000000) {
+    return (price / 1000000).toFixed(2) + 'M'
+  }
+  if (price >= 10000) {
+    return (price / 1000).toFixed(1) + 'K'
+  }
+  if (price >= 1000) {
+    return (price / 1000).toFixed(2) + 'K'
+  }
+  if (price >= 1) {
+    return price.toFixed(2)
+  }
+  if (price >= 0.01) {
+    return price.toFixed(4)
+  }
+  return price.toFixed(6)
+}
+
 interface TradingViewChartProps {
   symbol: string
   period: string
@@ -248,6 +271,7 @@ export default function TradingViewChart({
       // 判断是否需要指标子图
       const subplotIndicators = selectedIndicators.filter(ind => ['RSI14', 'RSI7', 'MACD', 'ATR14', 'STOCH', 'OBV'].includes(ind))
       const needsSubplot = subplotIndicators.length > 0
+      const isMobile = isMobileDevice()
 
       // 创建图表 - 使用正确的Panel架构
       const chart = createChart(container, {
@@ -280,12 +304,15 @@ export default function TradingViewChart({
         },
         rightPriceScale: {
           borderColor: 'rgba(156, 163, 175, 0.2)',
+          minimumWidth: isMobile ? 50 : 80,
+          scaleMargins: isMobile ? { top: 0.1, bottom: 0.1 } : { top: 0.05, bottom: 0.05 },
+          tickMarkFormatter: isMobile ? formatMobilePrice : undefined,
         },
         timeScale: {
           borderColor: 'rgba(156, 163, 175, 0.2)',
           timeVisible: true,
           secondsVisible: false,
-          barSpacing: 9,
+          barSpacing: isMobile ? 6 : 9,
           rightBarStaysOnScroll: false,
         },
       })
@@ -568,6 +595,7 @@ export default function TradingViewChart({
         // 判断是否需要指标子图
         const subplotIndicators = selectedIndicators.filter(ind => ['RSI14', 'RSI7', 'MACD', 'ATR14', 'STOCH', 'OBV'].includes(ind))
         const needsSubplot = subplotIndicators.length > 0
+        const isMobile = isMobileDevice()
 
         // 创建图表 - 使用正确的Panel架构
         const chart = createChart(container, {
@@ -600,12 +628,14 @@ export default function TradingViewChart({
           },
           rightPriceScale: {
             borderColor: 'rgba(156, 163, 175, 0.2)',
+            minimumWidth: isMobile ? 50 : 80,
+            scaleMargins: isMobile ? { top: 0.1, bottom: 0.1 } : { top: 0.05, bottom: 0.05 },
           },
           timeScale: {
             borderColor: 'rgba(156, 163, 175, 0.2)',
             timeVisible: true,
             secondsVisible: false,
-            barSpacing: 9,
+            barSpacing: isMobile ? 6 : 9,
             rightBarStaysOnScroll: false,
           },
         })

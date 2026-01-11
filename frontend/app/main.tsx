@@ -35,6 +35,8 @@ import { HyperliquidPage } from '@/components/hyperliquid'
 import HyperliquidView from '@/components/hyperliquid/HyperliquidView'
 import PremiumFeaturesView from '@/components/premium/PremiumFeaturesView'
 import KlinesView from '@/components/klines/KlinesView'
+import MobileModelChat from '@/components/mobile/MobileModelChat'
+import MobileDashboard from '@/components/mobile/MobileDashboard'
 // Remove CallbackPage import - handle inline
 import { AIDecision, getAccounts, checkMainnetAccounts, approveBuilder, type UnauthorizedAccount } from '@/lib/api'
 import { AuthorizationModal } from '@/components/hyperliquid'
@@ -81,6 +83,7 @@ const PAGE_TITLES: Record<string, string> = {
   'hyperliquid': 'Hyperliquid Trading',
   'klines': 'K-Line Charts',
   'premium-features': 'Premium Features',
+  'model-chat': 'Model Chat',
 }
 
 function App() {
@@ -655,13 +658,19 @@ function App() {
               />
             </div>
           ) : (
-            <div className="flex flex-col flex-1 min-h-0">
-              <HyperliquidView
-                wsRef={wsRef}
-                refreshKey={hyperliquidRefreshKey}
-                onPageChange={setCurrentPage}
-              />
-            </div>
+            <>
+              {/* Mobile: MobileDashboard, Desktop: HyperliquidView */}
+              <div className="md:hidden flex flex-col flex-1 min-h-0">
+                <MobileDashboard />
+              </div>
+              <div className="hidden md:flex flex-col flex-1 min-h-0">
+                <HyperliquidView
+                  wsRef={wsRef}
+                  refreshKey={hyperliquidRefreshKey}
+                  onPageChange={setCurrentPage}
+                />
+              </div>
+            </>
           )
         )}
 
@@ -695,6 +704,10 @@ function App() {
 
         {currentPage === 'premium-features' && (
           <PremiumFeaturesView onAccountUpdated={handleAccountUpdated} onPageChange={setCurrentPage} />
+        )}
+
+        {currentPage === 'model-chat' && (
+          <MobileModelChat />
         )}
       </main>
     )

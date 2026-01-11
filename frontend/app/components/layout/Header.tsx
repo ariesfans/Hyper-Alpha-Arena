@@ -73,17 +73,17 @@ export default function Header({ title = 'Hyper Alpha Arena', currentAccount, sh
 
   return (
     <header className="w-full border-b bg-background/50 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="w-full py-2 px-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <img src="/static/logo_app.png" alt="Logo" className="h-8 w-8 object-contain" />
-          <h1 className="text-xl font-bold">{title}</h1>
+      <div className="w-full py-2 px-3 md:px-4 flex items-center justify-between">
+        <div className="flex items-center gap-2 md:gap-3">
+          <img src="/static/logo_app.png" alt="Logo" className="h-7 w-7 md:h-8 md:w-8 object-contain" />
+          <h1 className="text-base md:text-xl font-bold truncate">{title}</h1>
 
-          {/* Exchanges Button */}
+          {/* Exchanges Button - Hidden on mobile */}
           <Button
             variant="outline"
             size="sm"
             onClick={() => setIsExchangeModalOpen(true)}
-            className="px-3 py-2 text-sm font-medium"
+            className="hidden md:flex px-3 py-2 text-sm font-medium"
           >
             <span className="mr-2">🔥</span>
             {t('header.exchanges', 'Exchanges')}:
@@ -94,11 +94,12 @@ export default function Header({ title = 'Hyper Alpha Arena', currentAccount, sh
             <ChevronDown className="ml-2 h-3 w-3" />
           </Button>
           {currentExchangeInfo.id === 'hyperliquid' && !isVipMember && (
-            <span className="text-xs text-muted-foreground ml-2">{t('header.premiumDiscount', 'Subscribe to Premium for service fee 50% off.')}</span>
+            <span className="hidden md:inline text-xs text-muted-foreground ml-2">{t('header.premiumDiscount', 'Subscribe to Premium for service fee 50% off.')}</span>
           )}
         </div>
 
-        <div className="flex items-center gap-3">
+        {/* Right side controls - Hidden on mobile */}
+        <div className="hidden md:flex items-center gap-3">
 
           <TradingModeSwitcher />
 

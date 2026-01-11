@@ -534,7 +534,17 @@
     "confirmUpdatePnlDesc": "此操作将从 Hyperliquid API 获取最新的手续费和盈亏数据，会消耗两次 API 调用（测试网 + 主网）。确定要继续吗？",
     "signalPoolTrigger": "信号池触发",
     "scheduledTrigger": "定时触发",
-    "promptTemplate": "提示词模板"
+    "promptTemplate": "提示词模板",
+    "accountSummary": "账户汇总",
+    "current": "当前",
+    "noContent": "暂无内容",
+    "pnlUpdated": "盈亏数据已更新",
+    "qty": "数量",
+    "relatedOrders": "关联订单",
+    "noAccounts": "未找到账户",
+    "trades": "交易记录",
+    "syncPnl": "同步盈亏",
+    "viewFull": "查看完整"
   },
   "toast": {
     "success": "成功",
@@ -1028,5 +1038,13 @@
     "importFailed": "导入失败",
     "importComplete": "导入完成",
     "importedCount": "成功导入 {{count}} 条记录"
+  },
+  "modelChat": {
+    "title": "AI 决策",
+    "subtitle": "查看 AI 交易决策推理过程",
+    "noAccount": "未选择账户",
+    "noDecisions": "暂无决策记录",
+    "noReasoning": "暂无推理数据",
+    "hyperliquidOnly": "仅在Hyperliquid模式下可用"
   }
 }

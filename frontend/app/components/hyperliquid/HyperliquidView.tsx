@@ -100,10 +100,10 @@ export default function HyperliquidView({ wsRef, refreshKey = 0, onPageChange }:
   }
 
   return (
-    <div className="grid gap-6 grid-cols-5 h-full min-h-0">
+    <div className="flex flex-col md:grid md:gap-6 md:grid-cols-5 h-full min-h-0 gap-4 pb-16 md:pb-0 overflow-y-auto md:overflow-hidden">
       {/* Left Panel - Chart & Account Summary */}
-      <div className="col-span-3 flex flex-col gap-4 min-h-0">
-        <div className="flex-1 min-h-[320px]">
+      <div className="md:col-span-3 flex flex-col gap-4 min-h-0">
+        <div className="flex-1 min-h-[250px] md:min-h-[320px]">
           {positionsData?.accounts?.length > 0 ? (
             <HyperliquidAssetChart
               accountId={firstAccountId}
@@ -119,7 +119,7 @@ export default function HyperliquidView({ wsRef, refreshKey = 0, onPageChange }:
             </div>
           )}
         </div>
-        <div className="border text-card-foreground shadow p-6 space-y-6">
+        <div className="border text-card-foreground shadow p-4 md:p-6 space-y-4 md:space-y-6">
           <HyperliquidMultiAccountSummary
             accounts={accounts}
             refreshKey={refreshKey + chartRefreshKey}
@@ -129,8 +129,8 @@ export default function HyperliquidView({ wsRef, refreshKey = 0, onPageChange }:
         </div>
       </div>
 
-      {/* Right Panel - Feed */}
-      <div className="col-span-2 flex flex-col min-h-0">
+      {/* Right Panel - Feed (hidden on mobile) */}
+      <div className="hidden md:flex md:col-span-2 flex-col min-h-0">
         <div className="flex-1 min-h-0 border border-border rounded-lg bg-card shadow-sm px-4 py-3 flex flex-col">
           <AlphaArenaFeed
             wsRef={wsRef}

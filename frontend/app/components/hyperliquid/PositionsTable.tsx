@@ -197,7 +197,64 @@ export default function PositionsTable({
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
+        <>
+          {/* Mobile Card Layout */}
+          <div className="md:hidden space-y-3 flex-1 overflow-y-auto">
+            {positions.map((position) => {
+              const positionId = `${position.coin}-${position.side}`;
+              const isClosing = closingPositionId === positionId;
+              const pnl = formatPnl(position.unrealizedPnl ?? 0);
+              const pnlPercent = position.pnlPercent.toFixed(2);
+              const entryPx = position.entryPx ?? 0;
+              const positionValue = position.positionValue ?? 0;
+              const sizeAbs = position.sizeAbs ?? 0;
+              const markPrice = sizeAbs > 0 ? positionValue / sizeAbs : entryPx;
+
+              return (
+                <Card key={positionId} className="p-3">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold">{position.coin}</span>
+                      <Badge
+                        variant={position.side === 'LONG' ? 'default' : 'destructive'}
+                        className="text-xs"
+                      >
+                        {position.side === 'LONG' ? (
+                          <TrendingUp className="w-3 h-3 mr-1" />
+                        ) : (
+                          <TrendingDown className="w-3 h-3 mr-1" />
+                        )}
+                        {position.side}
+                      </Badge>
+                    </div>
+                    <div className={`text-right ${pnl.color}`}>
+                      <div className="font-semibold">
+                        {pnl.icon} ${Math.abs(position.unrealizedPnl ?? 0).toFixed(2)}
+                      </div>
+                      <div className="text-xs">({pnlPercent}%)</div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
+                    <div>
+                      <div className="text-[10px] uppercase">Size</div>
+                      <div className="text-foreground">{sizeAbs.toFixed(4)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase">Entry</div>
+                      <div className="text-foreground">${entryPx.toFixed(2)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase">Mark</div>
+                      <div className="text-foreground">${markPrice.toFixed(2)}</div>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* Desktop Table Layout */}
+          <div className="hidden md:block overflow-x-auto overflow-y-auto flex-1 min-h-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -289,7 +346,8 @@ export default function PositionsTable({
               })}
             </TableBody>
           </Table>
-        </div>
+          </div>
+        </>
       )}
     </Card>
   );

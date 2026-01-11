@@ -4,6 +4,7 @@ import qwenLogo from '@/components/ui/public/qwen_logo.webp'
 import claudeLogo from '@/components/ui/public/Claude_logo.webp'
 import geminiLogo from '@/components/ui/public/Gemini_logo.webp'
 import grokLogo from '@/components/ui/public/Grok_logo.webp'
+import defaultRobotLogo from '@/components/ui/public/default_robot.svg'
 
 // Chart-specific logos
 import gptChartLogo from '@/components/ui/public/GPT_logo_chart.webp'
@@ -62,7 +63,7 @@ function normalizeKey(value?: string | null) {
 }
 
 export function getModelLogo(name?: string | null) {
-  if (!name) return undefined
+  if (!name) return { src: defaultRobotLogo, alt: 'AI Trader' }
   const normalized = normalizeKey(name)
   if (modelLogoMap[normalized]) return modelLogoMap[normalized]
 
@@ -77,7 +78,10 @@ export function getModelLogo(name?: string | null) {
   if (modelLogoMap[firstWord]) return modelLogoMap[firstWord]
 
   const trimmedWord = firstWord.replace(/\d+/g, '')
-  return modelLogoMap[trimmedWord]
+  if (modelLogoMap[trimmedWord]) return modelLogoMap[trimmedWord]
+
+  // Return default robot icon if no match found
+  return { src: defaultRobotLogo, alt: 'AI Trader' }
 }
 
 export function getModelChartLogo(name?: string | null) {
